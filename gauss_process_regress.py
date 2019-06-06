@@ -1,10 +1,17 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
+def kronecker(a, b):
+    if a == b:
+        return 1
+    else:
+        return 0
+
 def gauss_kernel(a, b):
     theta_1 = 1.0
-    theta_2 = 1.0
-    return theta_1 * np.exp(-(np.abs(a - b)**2)/theta_2)
+    theta_2 = 0.4
+    theta_3 = 0.1
+    return theta_1 * np.exp(-(np.abs(a - b)**2)/theta_2) + theta_3 * kronecker(a, b)
 
 def gpr(x_test, x_train, y_train):
     N = len(x_train)

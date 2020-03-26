@@ -1,6 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
+# 共分散行列の効率的な計算
 def kgauss(X, tau, sigma, eta):
     N = len(X)
     X = X.reshape((1,N))
@@ -10,63 +11,50 @@ def kgauss(X, tau, sigma, eta):
     return K
 
 def gauss_kernel(a, b, tau, sigma):
-    return tau * np.exp(-(np.abs(a - b)**2)/sigma)
+    return tau * np.exp(-((a - b)**2)/sigma)
 
-def gpr(x_test, x_train, y_train, tau, sigma, eta):
-    N = len(x_train)
-    K = kgauss(x_train, tau, sigma, eta)
+def gpr(xtest, xtrain, ytrain, tau, sigma, eta):
+    N = len(xtrain)
+    K = kgauss(xtrain, tau, sigma, eta)
     K_inv = np.linalg.inv(K) # O(N^3)でコスト高いが改善策があるらしい
-    yy = K_inv @ y_train
+    yy = K_inv @ ytrain
 
-    M = len(x_test)
-    k = np.empty(N, dtype=float)
-    mu = np.empty(M, dtype=float)
-    var = np.empty(M, dtype=float)
+    M = len(xtest)
+    k = np.empty(N)
+    mu = np.empty(M)
+    var = np.empty(M)
     for i in range(M):
         for j in range(N):
-            k[j] = gauss_kernel(x_train[j], x_test[i], tau, sigma)
-        s = gauss_kernel(x_test[i], x_test[i], tau, sigma)
+            k[j] = gauss_kernel(xtrain[j], xtest[i], tau, sigma)
+        s = gauss_kernel(xtest[i], xtest[i], tau, sigma)
         mu[i] = k.T @ yy
         var[i] = s - k @ K_inv @ k.T
     return mu, var
 
-# 乱数
-def make_data(N):
-    x_train = np.linspace(1, 4, N)
-    y_train = np.random.rand(N) * 5.0
-    return x_train, y_train
-
-# RBFカーネルを用いたなめらかな分布
-def make_data2(N, tau, sigma):
-	x_train = np.linspace(1, 4, N)
-	zero_vec = np.zeros_like(x_train, dtype=float)
-	K_mat = np.empty((N, N), dtype=float)
-	for i in range(N):
-		for j in range(N):
-			K_mat[i,j] = gauss_kernel(x_train[i], x_train[j], tau, sigma)
-	y_train = np.random.multivariate_normal(zero_vec, K_mat)
-	return x_train, y_train
-
 # 図を作成
-def show_graph(x_train, y_train, x_test, y_mu, y_var):
+def show_graph(xtrain, ytrain, xtest, ymu, yvar):
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
-    ax.scatter(x_test, y_mu, marker='o', label='test')
-    ax.scatter(x_train, y_train, marker='x', label='train')
+    ax.scatter(xtest, ymu, marker='o', label='test')
+    ax.scatter(xtrain, ytrain, marker='x', label='train')
     plt.legend()
     plt.show()
 
+# RBFカーネルを用いたなめらかな分布
+def make_data(xtrain, tau, sigma, eta):
+    N = len(xtrain)
+    zero_vec = np.zeros_like(xtrain)
+    K_mat = kgauss(xtrain, tau, sigma, eta)
+    ytrain = np.random.multivariate_normal(zero_vec, K_mat)
+    return ytrain
+
 if __name__ == "__main__":
-    N = 5 # 訓練データ数
-    x_train, y_train = make_data2(N, 1, 0.4)
-    # x_train, y_train = make_data(N)
-    M = 100 # テストデータ数
-    x_test = np.linspace(1, 4, M)
+    xtrain = np.linspace(1, 4, 5)
     # ハイパーパラメータ
     tau = 1.0
-    sigma = 0.1
+    sigma = 0.4
     eta = 0.1
-    mu, var = gpr(x_test, x_train, y_train, tau, sigma, eta)
-    # print(np.shape(mu))
-    # print(np.shape(var))
-    show_graph(x_train, y_train, x_test, mu, var)
+    ytrain = make_data(xtrain, tau, sigma, eta)
+    xtest = np.linspace(1, 4, 100)
+    mu, var = gpr(xtest, xtrain, ytrain, tau, sigma, eta)
+    show_graph(xtrain, ytrain, xtest, mu, var)

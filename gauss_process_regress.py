@@ -1,8 +1,9 @@
 import numpy as np
 from matplotlib import pyplot as plt
-# import scipy as sp
 from scipy import optimize
 
+def gauss_kernel(a, b, tau, sigma):
+    return np.exp(tau) * np.exp(-((a - b)**2)/np.exp(sigma))
 
 # 各要素が二乗誤差の行列の作成
 def make_squ_err_mat(X):
@@ -28,6 +29,7 @@ def func_L(params, xtrain, ytrain):
     tau = params[0]
     sigma = params[1]
     eta = params[2]
+    
     K = kgauss(xtrain, tau, sigma, eta)
     K_inv = np.linalg.pinv(K) # O(N^3)でコスト高いが改善策があるらしい
     ky_theta = K_inv @ ytrain.T
@@ -49,7 +51,7 @@ def gauss_kernel(a, b, tau, sigma):
 def gpr(xtest, xtrain, ytrain, tau, sigma, eta):
     N = len(xtrain)
     K = kgauss(xtrain, tau, sigma, eta)
-    K_inv = np.linalg.pinv(K) # O(N^3)でコスト高いが改善策があるらしい
+    K_inv = np.linalg.pinv(K)
     yy = K_inv @ ytrain
 
     M = len(xtest)
@@ -74,27 +76,35 @@ def make_data(xtrain, tau, sigma, eta):
     ytrain = np.random.multivariate_normal(zero_vec, K_mat) # 正規分布に従いランダム生成
     return ytrain
 
+def plot_graph(xtrain, ytrain, xtest, mu_list, solvers):
+    for i in range(len(solvers)):
+        plt.scatter(xtest, mu_list[i], marker='o', label=solvers[i])
+    plt.scatter(xtrain, ytrain, marker='x', label='train')
+    plt.xticks(xtrain, np.arange(0,len(xtrain)))
+    plt.legend()
+    plt.grid()
+    plt.show()
+
 if __name__ == "__main__":
     tau = np.log(1)
     sigma = np.log(1)
     eta = np.log(0.1)
+
     xtrain = np.linspace(1, 4, 4)
     ytrain = make_data(xtrain, tau, sigma, eta)
+    xtest = np.linspace(1, 4, 50)
+
     solvers = ['CG', 'BFGS', 'L-BFGS-B']
-    # solvers = ['BFGS']
     mu_list = []
-    var_list = []
+    # var_list = []
+
     for solver in solvers:
         # ハイパーパラメータ(初期値)
         [tau_out, sigma_out, eta_out] = est_param(xtrain, ytrain, tau, sigma, eta, solver)
         print('tau : {}, sigma : {}, eta :{}'.format(tau_out, sigma_out, eta_out))
-        xtest = np.linspace(1, 4, 50)
         mu, var = gpr(xtest, xtrain, ytrain, tau_out, sigma_out, eta_out)
         mu_list.append(mu)
-        var_list.append(var)
-    for i in range(len(solvers)):
-        plt.scatter(xtest, mu_list[i], marker='o', label=solvers[i])
-    plt.scatter(xtrain, ytrain, marker='x', label='train')
-    plt.legend()
-    plt.show()
+        # var_list.append(var)
+
+    plot_graph(xtrain, ytrain, xtest, mu_list, solvers)
 

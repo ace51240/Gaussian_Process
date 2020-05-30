@@ -29,7 +29,7 @@ def func_L(params, xtrain, ytrain):
     sigma = params[1]
     eta = params[2]
     K = kgauss(xtrain, tau, sigma, eta)
-    K_inv = np.linalg.inv(K) # O(N^3)でコスト高いが改善策があるらしい
+    K_inv = np.linalg.pinv(K) # O(N^3)でコスト高いが改善策があるらしい
     ky_theta = K_inv @ ytrain.T
     k_tau = dif_tau(xtrain, tau, sigma, eta)
     k_sig = dif_sigma(xtrain, tau, sigma, eta)
@@ -49,7 +49,7 @@ def gauss_kernel(a, b, tau, sigma):
 def gpr(xtest, xtrain, ytrain, tau, sigma, eta):
     N = len(xtrain)
     K = kgauss(xtrain, tau, sigma, eta)
-    K_inv = np.linalg.inv(K) # O(N^3)でコスト高いが改善策があるらしい
+    K_inv = np.linalg.pinv(K) # O(N^3)でコスト高いが改善策があるらしい
     yy = K_inv @ ytrain
 
     M = len(xtest)
